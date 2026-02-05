@@ -7,6 +7,8 @@ import config
 import fmp_api
 from ibkr_api import IBKRClient
 from strategy import check_volume_spike
+import threading
+import dashboard  # Flask app import
 
 def setup_logging():
     """Loglama ayarlarını yapar."""
@@ -18,7 +20,8 @@ def setup_logging():
         format="%(asctime)s - %(levelname)s - %(message)s",
         handlers=[
             logging.FileHandler(config.LOG_FILE),
-            logging.StreamHandler()
+            logging.StreamHandler(),
+            dashboard.DashboardLogHandler() # SocketIO Logger
         ]
     )
 
@@ -68,6 +71,10 @@ def close_positions_at_eod(ib_client: IBKRClient):
     ib_client.close_all_positions()
 
 def main():
+    # Start Dashboard in Thread
+    dash_thread = threading.Thread(target=dashboard.run_dashboard, daemon=True)
+    dash_thread.start()
+    
     setup_logging()
     logging.info("[START] Intraday Trading Bot başlatıldı")
     
@@ -86,7 +93,20 @@ def main():
             now = datetime.now(timezone('US/Eastern'))
             current_time = now.strftime('%H:%M')
             
-            if is_market_open():
+            # Dashboard Update
+            market_active = is_market_open()
+            balance = ib_client.get_account_balance()
+            positions = ib_client.get_open_positions() # Ensure this returns list of dicts with unrealizedPNL if possible
+            
+            dashboard.update_dashboard_state({
+                "status": "Scanning" if market_active else "Waiting for Market Open",
+                "balance": balance,
+                "positions": positions,
+                "last_update": now.strftime('%H:%M:%S'),
+                "market_active": market_active
+            })
+
+            if market_active:
                 if current_time >= config.EXIT_TIME:
                     close_positions_at_eod(ib_client)
                     logging.info("Gün sonu çıkış saati geldi. Program sonlandırılıyor.")

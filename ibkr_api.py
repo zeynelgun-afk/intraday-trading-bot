@@ -76,14 +76,15 @@ class IBKRClient:
             return []
             
         try:
-            positions = self.ib.positions()
+            portfolio = self.ib.portfolio()
             result = []
-            for pos in positions:
-                if pos.contract.secType == 'STK':
+            for item in portfolio:
+                if item.contract.secType == 'STK':
                     result.append({
-                        'symbol': pos.contract.symbol,
-                        'quantity': pos.position,
-                        'avg_price': pos.avgCost
+                        'symbol': item.contract.symbol,
+                        'quantity': item.position,
+                        'avg_price': item.averageCost,
+                        'unrealized_pnl': item.unrealizedPNL
                     })
             return result
         except Exception as e:
