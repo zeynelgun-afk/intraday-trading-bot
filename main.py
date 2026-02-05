@@ -55,7 +55,7 @@ def scan_and_trade(ib_client: IBKRClient):
                 continue
                 
             # Alım yap
-            logging.info(f"🔥 {symbol} için hacim patlaması! Alış emri gönderiliyor.")
+            logging.info(f"[ALIM] {symbol} için hacim patlaması! Alış emri gönderiliyor.")
             ib_client.place_market_order(symbol, config.POSITION_SIZE, "BUY")
             
         time.sleep(1) # API rate limit koruması
@@ -69,7 +69,7 @@ def close_positions_at_eod(ib_client: IBKRClient):
 
 def main():
     setup_logging()
-    logging.info("🚀 Intraday Trading Bot başlatıldı")
+    logging.info("[START] Intraday Trading Bot başlatıldı")
     
     ib_client = IBKRClient()
     connected = ib_client.connect()
@@ -105,7 +105,7 @@ def main():
         logging.error(f"Beklenmeyen hata: {e}")
     finally:
         ib_client.disconnect()
-        logging.info("✅ Bot durduruldu")
+        logging.info("[STOP] Bot durduruldu")
 
 if __name__ == "__main__":
     main()

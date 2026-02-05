@@ -5,7 +5,7 @@ load_dotenv()
 
 # FMP API
 FMP_API_KEY = os.getenv('FMP_API_KEY')
-FMP_BASE_URL = "https://financialmodelingprep.com/api/v3"
+FMP_BASE_URL = "https://financialmodelingprep.com/stable"
 
 # IBKR API
 IBKR_HOST = "127.0.0.1"

@@ -10,7 +10,7 @@ def get_most_active_stocks() -> list[str]:
     Returns:
         list[str]: Sembol listesi
     """
-    url = f"{config.FMP_BASE_URL}/stock-market-most-active"
+    url = f"{config.FMP_BASE_URL}/most-actives"
     params = {"apikey": config.FMP_API_KEY}
     
     try:
@@ -28,6 +28,9 @@ def get_most_active_stocks() -> list[str]:
 def get_1min_historical_data(symbol: str, limit: int = 30) -> pd.DataFrame:
     """
     Belirtilen sembol için son 30 dakikalık 1-dakika OHLCV verisini getirir.
+    NOTE: Historical chart endpoints might still use path structure on Stable, 
+    but let's try standard v3 structure first or check documentation.
+    Stable usually keeps path for charts: /historical-chart/1min/AAPL
     """
     url = f"{config.FMP_BASE_URL}/historical-chart/1min/{symbol}"
     params = {"apikey": config.FMP_API_KEY}
@@ -48,11 +51,20 @@ def get_1min_historical_data(symbol: str, limit: int = 30) -> pd.DataFrame:
         df['date'] = pd.to_datetime(df['date'])
         df = df.head(limit)
         
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.head(limit)
+        
         # Numeric dönüşüm
         cols = ['open', 'high', 'low', 'close', 'volume']
         df[cols] = df[cols].apply(pd.to_numeric)
         
         return df
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code in [403, 404]:
+            logging.warning(f"FMP API Erişim Sorunu ({symbol}): {e}")
+        else:
+            logging.error(f"FMP API HTTP Hatası ({symbol}): {e}")
+        return pd.DataFrame()
     except Exception as e:
         logging.error(f"FMP API hatası (Historical Data - {symbol}): {e}")
         return pd.DataFrame()
@@ -60,9 +72,10 @@ def get_1min_historical_data(symbol: str, limit: int = 30) -> pd.DataFrame:
 def get_current_price(symbol: str) -> float:
     """
     Hissenin güncel fiyatını getirir.
+    Use /quote-short?symbol=X on stable
     """
-    url = f"{config.FMP_BASE_URL}/quote-short/{symbol}"
-    params = {"apikey": config.FMP_API_KEY}
+    url = f"{config.FMP_BASE_URL}/quote-short"
+    params = {"apikey": config.FMP_API_KEY, "symbol": symbol}
     
     try:
         response = requests.get(url, params=params, timeout=10)
